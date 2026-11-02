@@ -20,6 +20,12 @@ const keyboard = document.querySelector('#keyboard');
 const promptEl = document.querySelector('#prompt');
 const input = document.querySelector('#typingInput');
 const inputWrap = document.querySelector('#inputWrap');
+const touchDevice = window.matchMedia('(pointer: coarse)').matches;
+if (touchDevice) {
+  input.readOnly = true;
+  input.setAttribute('inputmode', 'none');
+  document.querySelector('#inputHint').textContent = '아래 화면 키보드를 눌러 입력하세요';
+}
 let mode = 'sentence', passageIndex = 0, startedAt = null, timerInterval = null, soundOn = false, audioContext;
 
 let virtualSequence = [], virtualPrefix = '', shifted = false, virtualUpdate = false;
@@ -113,7 +119,7 @@ function renderPrompt(value = '') {
 }
 function resetStats() { startedAt = null; clearInterval(timerInterval); timerInterval = null; document.querySelector('#timer').textContent = '00:00'; }
 function startTimer() { if (startedAt) return; startedAt = Date.now(); timerInterval = setInterval(() => { const sec = Math.floor((Date.now()-startedAt)/1000); document.querySelector('#timer').textContent = `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`; renderPrompt(input.value); }, 1000); }
-function setPassage(next = true) { if (next) passageIndex++; resetStats(); input.value = ''; input.dataset.lastValue = ''; virtualPrefix = ''; virtualSequence = []; shifted = false; document.querySelector('[data-key="shift"]')?.classList.remove('active'); renderPrompt(); input.focus(); }
+function setPassage(next = true) { if (next) passageIndex++; resetStats(); input.value = ''; input.dataset.lastValue = ''; virtualPrefix = ''; virtualSequence = []; shifted = false; document.querySelector('[data-key="shift"]')?.classList.remove('active'); renderPrompt(); if (!touchDevice) input.focus(); }
 function beep() { if (!soundOn) return; audioContext ||= new (window.AudioContext || window.webkitAudioContext)(); const osc = audioContext.createOscillator(), gain = audioContext.createGain(); osc.frequency.value = 740; gain.gain.value = .025; osc.connect(gain); gain.connect(audioContext.destination); osc.start(); osc.stop(audioContext.currentTime + .025); }
 function showToast(message) { const toast = document.querySelector('#toast'); toast.textContent = message; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1500); }
 
@@ -140,5 +146,6 @@ document.querySelectorAll('.mode-tab').forEach(tab => tab.addEventListener('clic
 document.querySelector('#newText').addEventListener('click', () => { passageIndex++; input.dataset.lastValue = ''; setPassage(false); });
 document.querySelector('#resetButton').addEventListener('click', () => { input.dataset.lastValue = ''; setPassage(false); });
 document.querySelector('#soundToggle').addEventListener('click', (event) => { soundOn = !soundOn; document.querySelector('#soundIcon').textContent = soundOn ? '♫' : '♪'; event.currentTarget.querySelector('.sound-label').textContent = soundOn ? '소리 끄기' : '소리 켜기'; event.currentTarget.setAttribute('aria-label', soundOn ? '타자 소리 끄기' : '타자 소리 켜기'); });
-document.querySelector('.prompt-wrap').addEventListener('click', () => input.focus());
+document.querySelector('.prompt-wrap').addEventListener('click', () => { if (!touchDevice) input.focus(); });
 input.dataset.lastValue = ''; renderPrompt();
+
