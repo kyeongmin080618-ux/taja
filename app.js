@@ -84,7 +84,6 @@ function composeKorean(sequence) {
 function consonantsForFinal(final) { return ({1:0,2:1,4:2,7:3,8:5,16:6,17:7,19:9,20:10,21:11,22:12,23:14,24:15,25:16,26:17,27:18})[final] ?? 11; }
 function updateVirtualInput() { virtualUpdate = true; input.value = virtualPrefix + composeKorean(virtualSequence); input.dispatchEvent(new Event('input', {bubbles:true})); virtualUpdate = false; }
 function virtualPress(key) {
-  input.focus();
   if (key === 'shift') { shifted = !shifted; document.querySelector('[data-key="shift"]').classList.toggle('active', shifted); return; }
   if (key === 'backspace') {
     if (virtualSequence.length) virtualSequence.pop(); else { virtualPrefix = [...virtualPrefix].slice(0,-1).join(''); }
@@ -143,4 +142,3 @@ document.querySelector('#resetButton').addEventListener('click', () => { input.d
 document.querySelector('#soundToggle').addEventListener('click', (event) => { soundOn = !soundOn; document.querySelector('#soundIcon').textContent = soundOn ? '♫' : '♪'; event.currentTarget.querySelector('.sound-label').textContent = soundOn ? '소리 끄기' : '소리 켜기'; event.currentTarget.setAttribute('aria-label', soundOn ? '타자 소리 끄기' : '타자 소리 켜기'); });
 document.querySelector('.prompt-wrap').addEventListener('click', () => input.focus());
 input.dataset.lastValue = ''; renderPrompt();
-
