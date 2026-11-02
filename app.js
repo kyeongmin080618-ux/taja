@@ -22,15 +22,78 @@ const input = document.querySelector('#typingInput');
 const inputWrap = document.querySelector('#inputWrap');
 let mode = 'sentence', passageIndex = 0, startedAt = null, timerInterval = null, soundOn = false, audioContext;
 
-rows.forEach((row, rowIndex) => {
+let virtualSequence = [], virtualPrefix = '', shifted = false, virtualUpdate = false;
+function addKey(row, id, label, hangul = '', extraClass = '') {
+  const key = document.createElement('button'); key.type = 'button'; key.className = `key ${extraClass}`.trim(); key.dataset.key = id;
+  key.setAttribute('aria-label', hangul ? `${label}, ${hangul}` : label);
+  key.innerHTML = `<span class="latin">${label}</span>${hangul ? `<span class="hangul">${hangul}</span>` : ''}`;
+  key.addEventListener('click', () => virtualPress(id)); row.appendChild(key);
+}
+rows.forEach((row) => {
   const rowEl = document.createElement('div'); rowEl.className = 'key-row';
-  row.forEach(([latin, hangul]) => {
-    const key = document.createElement('div'); key.className = 'key'; key.dataset.key = latin;
-    key.innerHTML = `<span class="latin">${latin}</span><span class="hangul">${hangul}</span>`; rowEl.appendChild(key);
-  });
-  if (rowIndex === 2) { const space = document.createElement('div'); space.className = 'key space'; space.dataset.key = 'space'; space.innerHTML = '<span class="latin">SPACE</span>'; rowEl.appendChild(space); }
+  row.forEach(([latin, hangul]) => addKey(rowEl, latin, latin, hangul));
   keyboard.appendChild(rowEl);
 });
+const controlRow = document.createElement('div'); controlRow.className = 'key-row control-row';
+addKey(controlRow, 'shift', 'SHIFT', '', 'wide');
+addKey(controlRow, 'space', 'SPACE', '', 'space');
+addKey(controlRow, 'backspace', '⌫', '', 'wide');
+keyboard.appendChild(controlRow);
+
+const consonants = {
+  q:[7,17], Q:[8,0], w:[12,22], W:[13,0], e:[3,7], E:[4,0], r:[0,1], R:[1,2], t:[9,19], T:[10,20],
+  a:[6,16], s:[2,4], d:[11,21], f:[5,8], g:[18,27], z:[15,24], x:[16,25], c:[14,23], v:[17,26]
+};
+const vowels = {k:0,o:1,i:2,O:3,j:4,p:5,u:6,P:7,h:8,y:12,n:13,b:17,m:18,l:20};
+const initialIndex = {0:0,1:1,2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,10:10,11:11,12:12,13:13,14:14,15:15,16:16,17:17,18:18};
+const finalIndex = Object.fromEntries(Object.entries(consonants).map(([key, pair]) => [key, pair[1]]));
+const compoundVowels = {'8,0':9,'8,1':10,'8,20':11,'13,4':14,'13,5':15,'13,20':16,'18,20':19};
+const finalClusters = {'1,19':3,'4,22':5,'4,27':6,'8,1':9,'8,16':10,'8,17':11,'8,19':12,'8,25':13,'8,26':14,'8,27':15,'17,19':18};
+const splitClusters = {3:[1,19],5:[4,22],6:[4,27],9:[8,1],10:[8,16],11:[8,17],12:[8,19],13:[8,25],14:[8,26],15:[8,27],18:[17,19]};
+const doubledInitial = {'0,0':1,'3,3':4,'7,7':8,'9,9':10,'12,12':13};
+function composeKorean(sequence) {
+  const out = []; let L = null, V = null, T = 0;
+  const syllable = () => String.fromCharCode(0xac00 + (L * 21 + V) * 28 + T);
+  const compat = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+  const flush = () => { if (L !== null && V !== null) out.push(syllable()); else if (L !== null) out.push(compat[L]); L = null; V = null; T = 0; };
+  for (const token of sequence) {
+    if (token === ' ') { flush(); out.push(' '); continue; }
+    if (Object.hasOwn(vowels, token)) {
+      const vowel = vowels[token];
+      if (L === null) L = 11;
+      if (V === null) { V = vowel; continue; }
+      if (!T) { const combined = compoundVowels[`${V},${vowel}`]; if (combined !== undefined) V = combined; else { out.push(syllable()); L = 11; V = vowel; } continue; }
+      const split = splitClusters[T];
+      if (split) { out.push(String.fromCharCode(0xac00 + (L * 21 + V) * 28 + split[0])); L = consonantsForFinal(split[1]); }
+      else { out.push(String.fromCharCode(0xac00 + (L * 21 + V) * 28)); L = consonantsForFinal(T); }
+      V = vowel; T = 0; continue;
+    }
+    if (Object.hasOwn(consonants, token)) {
+      const [initial, final] = consonants[token];
+      if (L === null) { L = initial; continue; }
+      if (V === null) { const doubled = doubledInitial[`${L},${initial}`]; if (doubled !== undefined) L = doubled; else { out.push(compat[L]); L = initial; } continue; }
+      if (!T) { if (final) T = final; else { out.push(syllable()); L = initial; V = null; } continue; }
+      const cluster = finalClusters[`${T},${final}`];
+      if (cluster) T = cluster; else { out.push(syllable()); L = initial; V = null; T = 0; }
+      continue;
+    }
+  }
+  flush(); return out.join('');
+}
+function consonantsForFinal(final) { return ({1:0,2:1,4:2,7:3,8:5,16:6,17:7,19:9,20:10,21:11,22:12,23:14,24:15,25:16,26:17,27:18})[final] ?? 11; }
+function updateVirtualInput() { virtualUpdate = true; input.value = virtualPrefix + composeKorean(virtualSequence); input.dispatchEvent(new Event('input', {bubbles:true})); virtualUpdate = false; }
+function virtualPress(key) {
+  input.focus();
+  if (key === 'shift') { shifted = !shifted; document.querySelector('[data-key="shift"]').classList.toggle('active', shifted); return; }
+  if (key === 'backspace') {
+    if (virtualSequence.length) virtualSequence.pop(); else { virtualPrefix = [...virtualPrefix].slice(0,-1).join(''); }
+    updateVirtualInput(); return;
+  }
+  if (key === 'space') { virtualSequence.push(' '); updateVirtualInput(); virtualPrefix = input.value; virtualSequence = []; return; }
+  virtualSequence.push(shifted ? key.toUpperCase() : key); shifted = false;
+  document.querySelector('[data-key="shift"]').classList.remove('active');
+  updateVirtualInput();
+}
 
 function renderPrompt(value = '') {
   const target = passages[mode][passageIndex % passages[mode].length];
@@ -50,7 +113,7 @@ function renderPrompt(value = '') {
 }
 function resetStats() { startedAt = null; clearInterval(timerInterval); timerInterval = null; document.querySelector('#timer').textContent = '00:00'; }
 function startTimer() { if (startedAt) return; startedAt = Date.now(); timerInterval = setInterval(() => { const sec = Math.floor((Date.now()-startedAt)/1000); document.querySelector('#timer').textContent = `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`; renderPrompt(input.value); }, 1000); }
-function setPassage(next = true) { if (next) passageIndex++; resetStats(); input.value = ''; input.dataset.lastValue = ''; renderPrompt(); input.focus(); }
+function setPassage(next = true) { if (next) passageIndex++; resetStats(); input.value = ''; input.dataset.lastValue = ''; virtualPrefix = ''; virtualSequence = []; shifted = false; document.querySelector('[data-key="shift"]')?.classList.remove('active'); renderPrompt(); input.focus(); }
 function beep() { if (!soundOn) return; audioContext ||= new (window.AudioContext || window.webkitAudioContext)(); const osc = audioContext.createOscillator(), gain = audioContext.createGain(); osc.frequency.value = 740; gain.gain.value = .025; osc.connect(gain); gain.connect(audioContext.destination); osc.start(); osc.stop(audioContext.currentTime + .025); }
 function showToast(message) { const toast = document.querySelector('#toast'); toast.textContent = message; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1500); }
 
@@ -61,6 +124,7 @@ input.addEventListener('keydown', (event) => {
 });
 input.addEventListener('input', () => {
   const target = passages[mode][passageIndex % passages[mode].length];
+  if (!virtualUpdate) { virtualSequence = []; virtualPrefix = input.value; }
   if (input.value.length && !startedAt) startTimer();
   const previous = input.dataset.lastValue || '';
   if (input.value.length > previous.length) beep();
