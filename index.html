@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f7f3" />
+    <meta name="description" content="영문 쿼티 자판으로 한국어를 입력하는 두벌식 타자 연습" />
+    <title>한타 | 한국어 타자 연습</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="한타 홈"><span class="brand-mark">ㅎ</span><span>한타<span class="brand-dot">.</span></span></a>
+        <div class="top-note"><span class="status-dot"></span> 두벌식 타자 연습</div>
+        <button class="sound-button" id="soundToggle" aria-label="타자 소리 끄기" title="타자 소리 켜기/끄기"><span id="soundIcon">♪</span><span class="sound-label">소리 켜기</span></button>
+      </header>
+
+      <main>
+        <section class="intro">
+          <div class="eyebrow"><span>TYPE IN KOREAN</span><span class="eyebrow-line"></span><span>01 / 03</span></div>
+          <h1>손끝으로 익히는<br /><span>한국어 타자</span></h1>
+          <p>영문 자판 그대로, 한글은 손에 익게.<br class="mobile-break" /> 오늘의 문장을 천천히 따라 쳐보세요.</p>
+        </section>
+
+        <section class="practice-card" aria-label="타자 연습">
+          <div class="practice-top">
+            <div class="mode-tabs" role="tablist" aria-label="연습 모드">
+              <button class="mode-tab active" data-mode="sentence" role="tab" aria-selected="true">문장 연습</button>
+              <button class="mode-tab" data-mode="word" role="tab" aria-selected="false">낱말 연습</button>
+            </div>
+            <button class="refresh-button" id="newText" aria-label="새 문장"><span>↻</span> 새 문장</button>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat"><span class="stat-label">타수</span><span class="stat-value" id="speed">0<span class="stat-unit">타/분</span></span></div>
+            <div class="stat"><span class="stat-label">정확도</span><span class="stat-value" id="accuracy">100<span class="stat-unit">%</span></span></div>
+            <div class="stat"><span class="stat-label">진행</span><span class="stat-value" id="progressStat">0<span class="stat-unit">%</span></span></div>
+            <div class="timer stat"><span class="stat-label">시간</span><span class="stat-value" id="timer">00:00</span></div>
+          </div>
+
+          <div class="prompt-wrap">
+            <div class="prompt-caption"><span class="tiny-dot"></span> 아래 문장을 입력해 보세요</div>
+            <div class="prompt" id="prompt" aria-live="polite"></div>
+            <div class="input-wrap" id="inputWrap">
+              <span class="input-hint" id="inputHint">여기를 클릭하고 입력을 시작하세요</span>
+              <textarea id="typingInput" rows="1" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="연습 문장 입력" placeholder="한글 입력을 시작하세요"></textarea>
+            </div>
+          </div>
+
+          <div class="keyboard-section">
+            <div class="keyboard-heading"><span>가상 키보드</span><span class="keyboard-help">영문 키와 대응하는 한글을 보여줘요</span><span class="layout-badge"><span class="layout-led"></span> 2-SET KOREAN</span></div>
+            <div class="keyboard" id="keyboard" aria-label="두벌식 가상 키보드"></div>
+          </div>
+
+          <div class="card-footer">
+            <div class="footer-tip"><span class="tip-icon">↵</span><span>문장을 다 입력하면 다음 문장으로 넘어가요</span></div>
+            <button class="reset-button" id="resetButton"><span>⟲</span> 다시 시작</button>
+          </div>
+        </section>
+
+        <section class="bottom-note"><span class="sparkle">✳</span><span>천천히, 정확하게. 손이 기억할 때까지.</span><span class="note-rule"></span><span class="bottom-index">HANTA / 2025</span></section>
+      </main>
+      <footer class="site-footer"><span>한글을 입력하려면 기기의 한국어 입력기를 켜주세요.</span><span>MADE FOR YOUR FINGERTIPS <span class="heart">♥</span></span></footer>
+    </div>
+    <div class="toast" id="toast" role="status">잘했어요! 다음 문장으로 넘어갈게요.</div>
+    <script src="/app.js"></script>
+  </body>
+</html>
