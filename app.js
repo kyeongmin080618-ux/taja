@@ -58,8 +58,9 @@ function composeKorean(sequence) {
   const flush = () => { if (L !== null && V !== null) out.push(syllable()); else if (L !== null) out.push(compat[L]); L = null; V = null; T = 0; };
   for (const token of sequence) {
     if (token === ' ') { flush(); out.push(' '); continue; }
-    if (Object.hasOwn(vowels, token)) {
-      const vowel = vowels[token];
+    const lowerToken = token.toLowerCase();
+    if (Object.hasOwn(vowels, token) || Object.hasOwn(vowels, lowerToken)) {
+      const vowel = vowels[token] ?? vowels[lowerToken];
       if (L === null) L = 11;
       if (V === null) { V = vowel; continue; }
       if (!T) { const combined = compoundVowels[`${V},${vowel}`]; if (combined !== undefined) V = combined; else { out.push(syllable()); L = 11; V = vowel; } continue; }
@@ -68,8 +69,8 @@ function composeKorean(sequence) {
       else { out.push(String.fromCharCode(0xac00 + (L * 21 + V) * 28)); L = consonantsForFinal(T); }
       V = vowel; T = 0; continue;
     }
-    if (Object.hasOwn(consonants, token)) {
-      const [initial, final] = consonants[token];
+    if (Object.hasOwn(consonants, token) || Object.hasOwn(consonants, lowerToken)) {
+      const [initial, final] = consonants[token] ?? consonants[lowerToken];
       if (L === null) { L = initial; continue; }
       if (V === null) { const doubled = doubledInitial[`${L},${initial}`]; if (doubled !== undefined) L = doubled; else { out.push(compat[L]); L = initial; } continue; }
       if (!T) { if (final) T = final; else { out.push(syllable()); L = initial; V = null; } continue; }
@@ -142,3 +143,4 @@ document.querySelector('#resetButton').addEventListener('click', () => { input.d
 document.querySelector('#soundToggle').addEventListener('click', (event) => { soundOn = !soundOn; document.querySelector('#soundIcon').textContent = soundOn ? '♫' : '♪'; event.currentTarget.querySelector('.sound-label').textContent = soundOn ? '소리 끄기' : '소리 켜기'; event.currentTarget.setAttribute('aria-label', soundOn ? '타자 소리 끄기' : '타자 소리 켜기'); });
 document.querySelector('.prompt-wrap').addEventListener('click', () => input.focus());
 input.dataset.lastValue = ''; renderPrompt();
+
